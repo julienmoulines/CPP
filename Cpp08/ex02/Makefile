@@ -1,4 +1,4 @@
-NAME = MutanStack
+NAME = MutantStack
 
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -std=c++98
@@ -22,18 +22,11 @@ clean:
 	
 fclean:
 	$(RM) $(NAME)
-	rm -f testSujet
 
 re: fclean all
 
 .PHONY: all fclean clean
 
-reexecute: fclean all
-	clear
+reexecute: re
 	./MutanStack
-
-sujet:
-	$(CC) $(CFLAGS) srcs/main2.cpp -o testSujet
-	clear
-	./testSujet
 

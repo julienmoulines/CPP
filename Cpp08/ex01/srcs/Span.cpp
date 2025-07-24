@@ -20,6 +20,7 @@ void	Span::addNumber(int number){
 	_data.push_back(number);
 }
 
+// on trie le tableau puis on compare la difference entre chaque paire consecutive
 int		Span::shortestSpan() const{
 	if (_data.size() < 2)
 		throw std::runtime_error("Not enough numbers");
