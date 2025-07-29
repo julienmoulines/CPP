@@ -1,19 +1,5 @@
 #include "../includes/PmergeMe.hpp"
 
-// Constructeur privé - interdit la création d’objets de cette classe (tout est statique)
-PmergeMe::PmergeMe() {}
-
-// Constructeur par copie (non utilisé, requis par la forme canonique)
-PmergeMe::PmergeMe(const PmergeMe& other) { (void)other; }
-
-// Opérateur d’affectation (non utilisé, requis par la forme canonique)
-PmergeMe& PmergeMe::operator=(const PmergeMe& other) { (void)other; return *this; }
-
-// Destructeur (non utilisé, requis par la forme canonique)
-PmergeMe::~PmergeMe() {}
-
-
-// Vérifie si une chaîne contient uniquement des chiffres → donc un entier positif
 bool PmergeMe::IsPositive(const std::string& arg) {
     if (arg.empty()) return false;
     for (size_t i = 0; i < arg.length(); ++i) {
@@ -23,7 +9,6 @@ bool PmergeMe::IsPositive(const std::string& arg) {
     return true;
 }
 
-// Convertit une chaîne de caractères en entier (utilise stringstream)
 int PmergeMe::toInt(const std::string& str) {
     std::stringstream ss(str);
     int value;
@@ -31,22 +16,58 @@ int PmergeMe::toInt(const std::string& str) {
     return value;
 }
 
+// retourne un vecteur contenant dans quel ordre on doit insérer les éléments “minimums” dans le tableau trié
+std::vector<size_t> PmergeMe::generateJacobsthalIndices(size_t size) {
+    std::vector<size_t> indices;
+    std::vector<size_t> jacob;  // Début de la suite de Jacobsthal
+    jacob.push_back(0);
+    jacob.push_back(1);
+    //On génère la suite de Jacobsthal : 0, 1, 3, 5, 11, 21, ... jusqu’à >= size
+    for (size_t i = 2;; ++i) {
+        size_t next = jacob[i - 1] + 2 * jacob[i - 2];
+        if (next >= size)
+            break;
+        jacob.push_back(next);
+    }
 
-// Insère une valeur dans un std::vector trié à la bonne position (binary search + insert)
-static void insertSorted(std::vector<int>& sorted, int value) {
+    // Insertion dans l’ordre Jacobsthal inverse
+    std::vector<bool> inserted(size, false);
+    for (size_t i = jacob.size() - 1; i >= 1; --i) {
+        size_t idx = jacob[i];
+        if (idx < size && !inserted[idx]) {
+            indices.push_back(idx); // Ajoute à l’ordre d’insertion
+            inserted[idx] = true; // Marque comme inséré
+        }
+        if (i == 1)
+            break;
+    }
+    // Ajouter les indices oubliés par jacobsthal à la fin
+    for (size_t i = 0; i < size; ++i) {
+        if (!inserted[i])
+            indices.push_back(i); 
+    }
+
+    return indices;
+}
+
+// Insertion dans un vector trié
+void PmergeMe::insertSorted(std::vector<int>& sorted, int value) {
     std::vector<int>::iterator it = std::lower_bound(sorted.begin(), sorted.end(), value);
     sorted.insert(it, value);
 }
 
+// Insertion dans un deque trié
+void PmergeMe::insertSorted(std::deque<int>& sorted, int value) {
+    std::deque<int>::iterator it = std::lower_bound(sorted.begin(), sorted.end(), value);
+    sorted.insert(it, value);
+}
 
-// Trie un std::vector<int> en utilisant l’algorithme Ford-Johnson (merge-insert sort)
-void PmergeMe::sortVector(std::vector<int>& vec) {
+void PmergeMe::fordJohnsonSort(std::vector<int>& vec) {
     if (vec.size() < 2)
         return;
 
     std::vector<int> maxs, mins;
-
-    // Étape 1 : former des paires et séparer les mins et maxs
+    // separation en paires (min max) [8, 3, 5, 2] = 3 2 |  8 5
     for (size_t i = 0; i + 1 < vec.size(); i += 2) {
         if (vec[i] < vec[i + 1]) {
             mins.push_back(vec[i]);
@@ -57,31 +78,26 @@ void PmergeMe::sortVector(std::vector<int>& vec) {
         }
     }
 
-    // Si nombre impair d’éléments, on ajoute le dernier dans mins
-    if (vec.size() % 2 != 0)
-        mins.push_back(vec.back());
+    bool odd = (vec.size() % 2 != 0); //On teste si le vecteur a une taille impaire.
+    int leftover = odd ? vec.back() : -1; //leftover = (si odd est vrai) ? alors vec.back() : sinon -1;
 
-    // Étape 2 : tri récursif des maximums
-    sortVector(maxs);
 
-    // Étape 3 : insertion des minimums un à un dans le vecteur trié
-    for (size_t i = 0; i < mins.size(); ++i)
-        insertSorted(maxs, mins[i]);
+    fordJohnsonSort(maxs); //trie recursif sur les max
 
-    // Le vecteur trié devient la version finale
+    // On récupère l’ordre dans lequel on doit insérer les mins dans maxs
+    std::vector<size_t> order = generateJacobsthalIndices(mins.size());
+    //Insertion des mins dans maxs
+    for (size_t i = 0; i < order.size(); ++i)
+        insertSorted(maxs, mins[order[i]]);
+
+    //si impaire rajouter l'element restant
+    if (odd)
+        insertSorted(maxs, leftover);
+    // vec = version trié
     vec = maxs;
 }
 
-
-// Insère une valeur dans un std::deque trié à la bonne position (équivalent à vector)
-static void insertSorted(std::deque<int>& sorted, int value) {
-    std::deque<int>::iterator it = std::lower_bound(sorted.begin(), sorted.end(), value);
-    sorted.insert(it, value);
-}
-
-
-// Même chose que sortVector mais avec un std::deque<int>
-void PmergeMe::sortDeque(std::deque<int>& dq) {
+void PmergeMe::fordJohnsonSort(std::deque<int>& dq) {
     if (dq.size() < 2)
         return;
 
@@ -97,13 +113,25 @@ void PmergeMe::sortDeque(std::deque<int>& dq) {
         }
     }
 
-    if (dq.size() % 2 != 0)
-        mins.push_back(dq.back());
+    bool odd = (dq.size() % 2 != 0);
+    int leftover = odd ? dq.back() : -1;
 
-    sortDeque(maxs);
+    fordJohnsonSort(maxs);
 
-    for (size_t i = 0; i < mins.size(); ++i)
-        insertSorted(maxs, mins[i]);
+    std::vector<size_t> order = generateJacobsthalIndices(mins.size());
+    for (size_t i = 0; i < order.size(); ++i)
+        insertSorted(maxs, mins[order[i]]);
+
+    if (odd)
+        insertSorted(maxs, leftover);
 
     dq = maxs;
+}
+
+void PmergeMe::sortVector(std::vector<int>& vec) {
+    fordJohnsonSort(vec);
+}
+
+void PmergeMe::sortDeque(std::deque<int>& dq) {
+    fordJohnsonSort(dq);
 }

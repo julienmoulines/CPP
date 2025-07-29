@@ -24,7 +24,7 @@ void BitcoinExchange::loadData(const std::string& filename) {
             continue;
         std::string date = line.substr(0, pos);
         std::string rateStr = line.substr(pos + 1);
-        std::stringstream ss(rateStr);
+        std::stringstream ss(rateStr); //creer un flux de chaine pour extraire les possibles float
         float rate;
         ss >> rate;
         if (ss.fail())
@@ -33,8 +33,12 @@ void BitcoinExchange::loadData(const std::string& filename) {
     }
 }
 
+
+//it first = data.csv->date
+//it->second = data.csv->rate
 float BitcoinExchange::getRateForDate(const std::string& date) const {
     std::map<std::string, float>::const_iterator it = _data.lower_bound(date);
+    // lower_bound retourne un itérateur vers le premier élément dont la clé n’est pas inférieure à key (ici dans le parsing de data.csv).
     if (it != _data.end() && it->first == date)
         return it->second;
     if (it == _data.begin())

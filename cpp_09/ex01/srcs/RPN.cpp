@@ -5,15 +5,17 @@
 
 int RPN::evaluate(const std::string& expr) {
     std::stack<int> stack;
-    std::stringstream ss(expr);
+    std::stringstream ss(expr);  // Convertit la chaîne en flux pour lire les tokens facilement
     std::string token;
 
+    // Boucle principale : on lit chaque mot (séparé par un espace)
     while (ss >> token) {
         if (token.length() == 1 && std::isdigit(token[0])) {
-            stack.push(token[0] - '0');
+            stack.push(token[0] - '0');  // convertit le caractère en int et push sur la stack
         } else if (token == "+" || token == "-" || token == "*" || token == "/") {
             if (stack.size() < 2)
                 throw std::runtime_error("Error");
+// On récupère les deux derniers éléments de la pile
             int b = stack.top(); stack.pop();
             int a = stack.top(); stack.pop();
             int result = 0;
@@ -25,8 +27,8 @@ int RPN::evaluate(const std::string& expr) {
                 if (b == 0) throw std::runtime_error("Error: division by zero");
                 	result = a / b;
             }
-
-            stack.push(result);
+        stack.push(result);
+        
         } else {
             throw std::runtime_error("Error");
         }
